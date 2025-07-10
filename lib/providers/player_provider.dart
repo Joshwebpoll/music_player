@@ -1,42 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import '../models/song.dart';
+import '../models/song_model.dart';
 
 class PlayerProvider with ChangeNotifier {
-  final _audioPlayer = AudioPlayer();
-  List<Song> _songs = [];
-  int _currentIndex = 0;
+  final AudioPlayer _player = AudioPlayer();
+  SongModel? _current;
+  bool _isPlaying = false;
 
-  AudioPlayer get audioPlayer => _audioPlayer;
-  List<Song> get songs => _songs;
-  int get currentIndex => _currentIndex;
-  Song get currentSong =>
-      _songs.isNotEmpty ? _songs[_currentIndex] : Song(title: '', path: '');
+  SongModel? get current => _current;
+  bool get isPlaying => _isPlaying;
+  AudioPlayer get audioPlayer => _player;
 
-  Future<void> setSongs(List<Song> songs) async {
-    _songs = songs;
-    _currentIndex = 0;
-    await _audioPlayer.setAudioSource(
-      ConcatenatingAudioSource(
-        children: songs.map((s) => AudioSource.uri(Uri.file(s.path))).toList(),
-      ),
-    );
-    _audioPlayer.currentIndexStream.listen((index) {
-      if (index != null) {
-        _currentIndex = index;
-        notifyListeners();
-      }
-    });
+  Future<void> play(SongModel song) async {
+    _current = song;
+    await _player.setFilePath(song.path);
+    _player.play();
+    _isPlaying = true;
     notifyListeners();
   }
 
-  void play() => _audioPlayer.play();
-  void pause() => _audioPlayer.pause();
-  void next() => _audioPlayer.seekToNext();
-  void previous() => _audioPlayer.seekToPrevious();
-  void seek(Duration position) => _audioPlayer.seek(position);
+  void pause() {
+    _player.pause();
+    _isPlaying = false;
+    notifyListeners();
+  }
 
-  void disposePlayer() {
-    _audioPlayer.dispose();
+  void resume() {
+    _player.play();
+    _isPlaying = true;
+    notifyListeners();
   }
 }

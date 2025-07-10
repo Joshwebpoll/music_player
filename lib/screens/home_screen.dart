@@ -1,63 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/song.dart';
+import '../models/song_model.dart';
 import '../providers/player_provider.dart';
 import '../services/music_loader.dart';
 import '../widgets/player_controls.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  @override
-  void initState() {
-    super.initState();
-    loadSongs();
-  }
+  List<SongModel> _songs = [];
 
-  void loadSongs() async {
-    final songs = await pickSongsFromPhone();
-    if (songs.isNotEmpty) {
-      Provider.of<PlayerProvider>(context, listen: false).setSongs(songs);
-    }
+  void _loadSongs() async {
+    final songs = await MusicLoader.pickSongs();
+    if (mounted) setState(() => _songs = songs);
   }
 
   @override
   Widget build(BuildContext context) {
     final player = Provider.of<PlayerProvider>(context);
-    final songs = player.songs;
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Music Player"),
+        title: const Text("Simple Music Player"),
         actions: [
-          IconButton(icon: const Icon(Icons.folder), onPressed: loadSongs),
+          IconButton(
+            icon: const Icon(Icons.folder_open),
+            onPressed: _loadSongs,
+          ),
         ],
       ),
       body: Column(
         children: [
-          if (songs.isEmpty)
-            const Expanded(child: Center(child: Text("No songs loaded")))
-          else
-            Expanded(
-              child: ListView.builder(
-                itemCount: songs.length,
-                itemBuilder: (_, index) {
-                  final song = songs[index];
-                  return ListTile(
-                    title: Text(song.title),
-                    selected: index == player.currentIndex,
-                    onTap: () {
-                      player.audioPlayer.seek(Duration.zero, index: index);
-                      player.play();
-                    },
-                  );
-                },
-              ),
-            ),
+          Expanded(
+            child:
+                _songs.isEmpty
+                    ? const Center(child: Text("No songs loaded."))
+                    : ListView.builder(
+                      itemCount: _songs.length,
+                      itemBuilder: (_, index) {
+                        final song = _songs[index];
+                        return ListTile(
+                          title: Text(song.title),
+                          onTap: () => player.play(song),
+                        );
+                      },
+                    ),
+          ),
           const PlayerControls(),
         ],
       ),
